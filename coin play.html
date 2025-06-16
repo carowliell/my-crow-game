@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>小烏鴉的乖寶寶硬幣冒險</title>
+    <style>
+        :root {
+            --bg-color: #4a5a6a;
+            --wall-color: #78909c;
+            --dot-color: #f0f8ff;
+            --player-color: #36454f;
+            --enemy-color: #add8e6;
+            --primary-text: #eceff1;
+            --accent-color: #81d4fa;
+            --panel-bg: rgba(40, 50, 60, 0.85);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            /*【修正】增加Emoji字體支援 */
+            font-family: 'Segoe UI', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #background-container {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1; overflow: hidden;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzRhNWE2YSI+PC9yZWN0PjxwYXRoIHRyYW5zZm9ybT0icm90YXRlKDE1IDUwIDUwKSBzY2FsZSgwLjgpIiBkPSJNNTAsMjAgQzcwLDMwIDgwLDYwIDUwLDgwIEMyMCw2MCAzMCwzMCA1MCwyMCBaIE00OCw0OCBBMywzIDAgMSwxIDUyLDQ4IEEzLDMgMCAxLDEgNDgsNDgiIGZpbGw9IiMzNjQ1NGYiIG9wYWNpdHk9IjAuMiIvPjwvc3ZnPg==');
+            background-repeat: repeat;
+        }
+
+        .feather {
+            position: absolute; width: 15px; height: 15px;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iYmxhY2siIG9wYWNpdHk9IjAuNyI+PHBhdGggZD0iTTEyLDIgQzEyLDIgNSw4IDUsMTIgQzUsMTYgOCwyMiAxMiwyMiBDMTYsMjIgMTksMTYgMTksMTIgQzE5LDggMTIsMiAxMiwyIFoiIHRyYW5zZm9ybT0icm90YXRlKDQ1KSIvPjwvc3ZnPg==');
+            background-size: contain; animation: fall-flutter linear infinite;
+        }
+
+        @keyframes fall-flutter { to { transform: translateY(105vh) rotate(360deg); } }
+
+        .game-wrapper { position: relative; display: flex; justify-content: center; align-items: center; }
+        .game-container { display: flex; flex-direction: column; align-items: center; padding: 10px; max-width: 95vw; }
+
+        #info-bar {
+            display: flex; justify-content: space-around; align-items: center;
+            flex-wrap: wrap; gap: 15px; width: 100%;
+            max-width: 600px; margin-bottom: 5px; font-size: 1.2rem; font-weight: bold;
+        }
+        
+        #score-display, #lives-display, #level-display {
+            background-color: var(--panel-bg); padding: 8px 15px; border-radius: 20px;
+            display: flex; align-items: center; gap: 8px; white-space: nowrap;
+        }
+        .icon { width: 24px; height: 24px; }
+        
+        #credits { font-size: 0.9rem; color: #aaa; margin-bottom: 10px; width: 100%; text-align: center; }
+
+        canvas {
+            background-color: #000; display: block;
+            border: 3px solid var(--accent-color); border-radius: 10px;
+            max-width: 100%; max-height: calc(95vh - 220px);
+            aspect-ratio: 1 / 1;
+        }
+        
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.85); display: none;
+            justify-content: center; align-items: center; z-index: 100;
+            flex-direction: column; text-align: center; padding: 20px;
+        }
+        .modal-content {
+            background-color: var(--panel-bg); padding: 30px; border-radius: 20px;
+            border: 2px solid var(--accent-color); box-shadow: 0 0 20px var(--accent-color);
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+        .modal-content h2 { font-size: 2rem; color: var(--accent-color); margin-bottom: 10px; }
+        .modal-content p { font-size: 1.2rem; margin-bottom: 25px; }
+        .modal-btn {
+            padding: 12px 30px; font-size: 1.2rem; font-weight: bold;
+            color: var(--bg-color); background-color: var(--accent-color);
+            border: none; border-radius: 30px; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .modal-btn:hover { transform: scale(1.05); box-shadow: 0 0 15px var(--accent-color); }
+
+        .emoji-display { font-size: 100px; margin-bottom: 20px; }
+        #pause-overlay { color: var(--accent-color); font-size: 4rem; font-weight: bold; text-shadow: 0 0 15px black; }
+        
+        .helper {
+            position: absolute; bottom: 20px; width: 80px; height: 80px;
+            display: none;
+            animation: bounce-cheer 2s infinite ease-in-out;
+            background-size: contain; background-repeat: no-repeat;
+        }
+        @keyframes bounce-cheer {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-15px) rotate(-5deg); }
+            75% { transform: translateY(-15px) rotate(5deg); }
+        }
+        
+        #cat-helper { 
+            left: -100px; 
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNNTAsOTVDMjAuMyw5NSwwLDgwLjQsMCw1NS42QzAsMzQuMSwxOC45LDE1LjIsNDIuNCwxNS4ySDU3LjZDNzcuOCwxNS4yLDk1LjQsMzIuOCw5NS40LDU1LjZDOTUuNCw4MC40LDc5LjcsOTUsNTAsOTVaIiBmaWxsPSIjMjgyODI4Ii8+PHBhdGggZD0iTTMwLDIwIEMyNSwxMCA0MCwxNSA0MCwyNSBaIiBmaWxsPSIjMjgyODI4Ii8+PHBhdGggZD0iTTcwLDIwIEM3NSwxMCA2MCwxNSA2MCwyNSBaIiBmaWxsPSIjMjgyODI4Ii8+PGNpcmNsZSBjeD0iNDIiIGN5PSI0NCIgcj0iOCIgZmlsbD0id2hpdGUiLz48Y2lyY2xlIGN4PSI1OCIgY3k9IjQ0IiByPSI4IiBmaWxsPSJ3aGl0ZSIvPjxwYXRoIGQ9Ik00NSw2MCBDNTAsNjUgNTUsNjAgNTUsNjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+');
+        }
+        #seal-helper { 
+            right: -100px; 
+            animation-delay: -1s; 
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNNTAsOTVDMjAuMyw5NSwwLDgwLjQsMCw1NS42QzAsMzQuMSwxOC45LDE1LjIsNDIuNCwxNS4ySDU3LjZDNzcuOCwxNS4yLDk1LjQsMzIuOCw5NS40LDU1LjZDOTUuNCw4MC40LDc5LjcsOTUsNTAsOTVaIiBmaWxsPSIjZjVmM2YwIi8+PGNpcmNsZSBjeD0iMzgiIGN5PSI1MiIgcj0iOCIgZmlsbD0iIzE5MTkxOSIvPjxjaXJjbGUgY3g9IjYyIiBjeT0iNTIiIHI9IjgiIGZpbGw9IiMxOTE5MTkiLz48cGF0aCBkPSJNNDksNjVDNTAsNjcgNTEsNjUgNTEsNjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzE5MTkxOSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48Y2lyY2xlIGN4PSI1MC4xIiBjeT0iNjAuNCIgcj0iNCIgZmlsbD0iIzE5MTkxOSIvPjxjaXJjbGUgY3g9IjM3IiBjeT0iNTEiIHI9IjIuNSIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iMC44Ii8+PGNpcmNsZSBjeD0iNjEiIGN5PSI1MSIgcj0iMi41IiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIwLjgiLz48L3N2Zz4=');
+        }
+
+        #mobile-controls { display: none; }
+        
+        @media (max-width: 768px) {
+            .helper { display: none !important; }
+            #info-bar { font-size: 1rem; gap: 8px; justify-content: center; }
+            canvas { max-height: calc(95vh - 180px); }
+            .modal-content { width: 90%; }
+            #mobile-controls {
+                display: block; position: fixed; bottom: 20px; left: 50%;
+                transform: translateX(-50%); z-index: 50;
+            }
+            .controls-grid { display: grid; grid-template-columns: repeat(3, 55px); grid-template-rows: repeat(3, 55px); gap: 8px; }
+            .control-btn {
+                background-color: var(--panel-bg); border: 2px solid var(--accent-color);
+                border-radius: 50%; color: var(--accent-color); font-size: 1.8rem;
+                display: flex; justify-content: center; align-items: center; user-select: none;
+            }
+            .control-btn:active { background-color: var(--accent-color); color: var(--bg-color); }
+            #btn-up { grid-area: 1 / 2; } #btn-left { grid-area: 2 / 1; } #btn-right { grid-area: 2 / 3; } #btn-down { grid-area: 3 / 2; }
+        }
+    </style>
+</head>
+<body>
+    <div id="background-container"></div>
+    <div class="game-wrapper">
+        <div id="cat-helper" class="helper"></div>
+        <div id="seal-helper" class="helper"></div>
+        <div class="game-container">
+            <div id="info-bar">
+                <div id="level-display">關卡: 1</div>
+                <div id="lives-display">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0icmVkIj48cGF0aCBkPSJNMTIgNC4yN0MxMC4xMyAyLjQxIDcuNiAyLjM4IDUuNzkgMy44QzMuNjQgNS41MiAzLjM2IDguNS41IDEwLjY5QzYuNzMgMTMuMDIgMTIgMTggMTIgMThDMTIgMTggMTcuMjcgMTMuMDIgMTguNSA5QzIwLjY0IDYuNSAyMC4zNiAzLjUyIDE4LjIxIDEuOEMxNi40IDAuMzggMTMuODcgMC40MSAxMiA0LjI3WiIvPjwvc3ZnPg==" alt="Life" class="icon">
+                    <span id="lives-count">3</span>
+                </div>
+                <div id="score-display">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iI2ZmZDcwMCIgc3Ryb2tlPSIjZmZlMDYyIiBzdHJva2Utd2lkdGg9IjUiLz48dGV4dCB4PSI1MCUiIHk9IjU1JSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSI1MCIgZm9udC1mYW1pbHk9ImFyaWFsIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmYTgwMCI+WjwvdGV4dD48L3N2Zz4=" alt="Coin" class="icon">
+                    <span>乖寶寶硬幣: </span><span id="score-count">0</span>
+                </div>
+            </div>
+            <div id="credits">製作人: CaRowlie</div>
+            <canvas id="game-canvas"></canvas>
+        </div>
+    </div>
+    <div id="mobile-controls">
+        <div class="controls-grid">
+            <div class="control-btn" id="btn-up">▲</div>
+            <div class="control-btn" id="btn-left">◀</div>
+            <div class="control-btn" id="btn-right">▶</div>
+            <div class="control-btn" id="btn-down">▼</div>
+        </div>
+    </div>
+    <div id="win-modal" class="modal">
+        <div class="modal-content">
+            <h2>太棒了！</h2>
+            <!-- 【最終修正】直接使用Emoji -->
+            <div class="emoji-display">🦁</div>
+            <p>這是 ZP 給你的摸摸頭獎賞！<br>你獲得了一枚乖寶寶硬幣！</p>
+            <button id="next-level-btn" class="modal-btn">下一關</button>
+        </div>
+    </div>
+    <div id="game-over-modal" class="modal"><div class="modal-content"><h2>遊戲結束</h2><p>別氣餒，再試一次吧！</p><button id="restart-btn" class="modal-btn">重新開始</button></div></div>
+    <div id="pause-overlay" class="modal"><h2>暫停中...</h2><p>(按 F1 繼續)</p></div>
+
+    <script>
+    // 1. 元素獲取
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+    const scoreCountEl = document.getElementById('score-count');
+    const livesCountEl = document.getElementById('lives-count');
+    const levelDisplayEl = document.getElementById('level-display');
+    const winModal = document.getElementById('win-modal');
+    const gameOverModal = document.getElementById('game-over-modal');
+    const pauseOverlay = document.getElementById('pause-overlay');
+    const catHelper = document.getElementById('cat-helper');
+    const sealHelper = document.getElementById('seal-helper');
+    
+    // 2. 常數與全域變數
+    const TILE_SIZE = 30;
+    const PLAYER_SPEED = 3;
+    const ENEMY_SPEED = 0.6;
+    let colors = {};
+
+    const maps = [
+        [ [1,1,1,1,1,1,1,1,1,1,1],[1,0,0,0,0,2,0,0,0,0,1],[1,0,1,1,1,0,1,1,1,0,1],[1,0,0,0,0,0,0,0,0,0,1],[1,1,1,1,1,1,1,1,1,1,1] ],
+        [ [1,1,1,1,1,1,1,1,1,1,1],[1,0,0,0,1,0,1,0,0,0,1],[1,0,1,0,0,2,0,0,1,0,1],[1,0,0,1,0,0,0,1,0,0,1],[1,1,1,1,1,1,1,1,1,1,1] ],
+        [ [1,1,1,1,1,1,1,1,1,1,1],[1,0,1,0,0,0,0,0,1,0,1],[1,0,0,0,1,2,1,0,0,0,1],[1,0,1,0,0,0,0,0,1,0,1],[1,1,1,1,1,1,1,1,1,1,1] ],
+        [ [1,1,1,1,1,1,1,1,1,1,1],[1,2,0,1,0,0,0,1,0,0,1],[1,0,0,1,0,1,0,1,0,1,1],[1,0,1,1,0,0,0,1,0,0,1],[1,0,0,0,0,1,0,0,0,1,1],[1,1,1,1,1,1,1,1,1,1,1] ],
+        [ [1,1,1,1,1,1,1,1,1,1,1],[1,0,0,0,0,0,1,0,0,0,1],[1,0,1,1,1,0,0,0,1,0,1],[1,0,1,2,0,0,1,0,1,0,1],[1,0,1,1,1,0,1,0,1,0,1],[1,0,0,0,0,0,0,0,0,0,1],[1,1,1,1,1,1,1,1,1,1,1] ]
+    ];
+    let currentMap;
+
+    let player, enemies = [], dots = [];
+    let score = 0, level = 1, lives = 3;
+    let gameLoopId, isPaused = false, isGameOver = false;
+    let showCat = false, showSeal = false;
+
+    // 3. 類別定義
+    class Character {
+        constructor(x, y, speed) {
+            this.x = x; this.y = y; this.speed = speed;
+            this.direction = { x: 0, y: 0 };
+            this.nextDirection = { x: 0, y: 0 };
+        }
+        isAtGridCenter() { return (this.x - TILE_SIZE / 2) % TILE_SIZE === 0 && (this.y - TILE_SIZE / 2) % TILE_SIZE === 0; }
+        getGridPos() { return { x: Math.floor(this.x / TILE_SIZE), y: Math.floor(this.y / TILE_SIZE) }; }
+    }
+
+    class Crow extends Character {
+        constructor(x, y) {
+            super(x, y, PLAYER_SPEED);
+            this.radius = TILE_SIZE / 2 - 5;
+        }
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.fillStyle = colors.player || '#36454f';
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#ffd700';
+            ctx.beginPath();
+            ctx.moveTo(this.radius - 2, -4);
+            ctx.lineTo(this.radius + 8, 0);
+            ctx.lineTo(this.radius - 2, 4);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(this.radius * 0.4, -this.radius * 0.3, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+        update() {
+            if (this.nextDirection.x !== 0 || this.nextDirection.y !== 0) {
+                 if (this.isAtGridCenter()) {
+                    const pos = this.getGridPos();
+                    const nextPos = { x: pos.x + this.nextDirection.x, y: pos.y + this.nextDirection.y };
+                     if (currentMap[nextPos.y] && currentMap[nextPos.y][nextPos.x] !== 1) {
+                        this.direction = { ...this.nextDirection };
+                        this.nextDirection = { x: 0, y: 0 };
+                    }
+                 }
+            }
+            if (this.isAtGridCenter()) {
+                const pos = this.getGridPos();
+                const frontPos = { x: pos.x + this.direction.x, y: pos.y + this.direction.y };
+                if (currentMap[frontPos.y] && currentMap[frontPos.y][frontPos.x] === 1) {
+                    this.direction = { x: 0, y: 0 };
+                }
+            }
+            this.x += this.direction.x * this.speed;
+            this.y += this.direction.y * this.speed;
+            this.eatDot();
+        }
+        eatDot() {
+            const pos = this.getGridPos();
+            for (let i = dots.length - 1; i >= 0; i--) {
+                if (dots[i].gridX === pos.x && dots[i].gridY === pos.y) { dots.splice(i, 1); }
+            }
+        }
+    }
+    
+    class Jelly extends Character {
+         constructor(x, y) {
+            super(x, y, ENEMY_SPEED);
+            this.radius = TILE_SIZE / 2 - 6;
+        }
+        draw() {
+            ctx.fillStyle = colors.enemy || 'blue';
+            ctx.globalAlpha = 0.8;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+        }
+        update() {
+            if (this.isAtGridCenter()) {
+                const pos = this.getGridPos();
+                const possibleDirections = [];
+                [{x:0,y:-1}, {x:0,y:1}, {x:-1,y:0}, {x:1,y:0}].forEach(dir => {
+                    if (currentMap[pos.y + dir.y] && currentMap[pos.y + dir.y][pos.x + dir.x] !== 1) {
+                        possibleDirections.push(dir);
+                    }
+                });
+                if (possibleDirections.length > 0) {
+                    this.direction = possibleDirections[Math.floor(Math.random() * possibleDirections.length)];
+                }
+            }
+            this.x += this.direction.x * this.speed;
+            this.y += this.direction.y * this.speed;
+        }
+    }
+
+    class Dot {
+        constructor(x, y) {
+            this.x = x * TILE_SIZE + TILE_SIZE / 2;
+            this.y = y * TILE_SIZE + TILE_SIZE / 2;
+            this.gridX = x; this.gridY = y; this.radius = 4;
+        }
+        draw() {
+            ctx.fillStyle = colors.dot || 'white';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    // 4. 核心遊戲函式
+    function getCssColors() {
+        const computedStyle = getComputedStyle(document.documentElement);
+        colors = {
+            wall: computedStyle.getPropertyValue('--wall-color').trim(),
+            dot: computedStyle.getPropertyValue('--dot-color').trim(),
+            player: computedStyle.getPropertyValue('--player-color').trim(),
+            enemy: computedStyle.getPropertyValue('--enemy-color').trim(),
+        };
+    }
+
+    function init(isRestart = false) {
+        getCssColors();
+        if (isRestart) {
+            score = 0; level = 1; lives = 3;
+            showCat = false; showSeal = false;
+        }
+        isPaused = false; isGameOver = false;
+        
+        setupLevel();
+        updateUI();
+
+        const containerWidth = document.querySelector('.game-container').clientWidth;
+        const canvasSize = Math.min(containerWidth, window.innerHeight - 200, 600);
+        canvas.width = currentMap[0].length * TILE_SIZE;
+        canvas.height = currentMap.length * TILE_SIZE;
+        canvas.style.width = `${canvasSize}px`;
+        canvas.style.height = `${canvasSize}px`;
+
+        if(gameLoopId) cancelAnimationFrame(gameLoopId);
+        gameLoop();
+    }
+    
+    function setupLevel() {
+        currentMap = maps[(level - 1) % maps.length];
+        dots = []; enemies = [];
+        player = null;
+        for (let y = 0; y < currentMap.length; y++) {
+            for (let x = 0; x < currentMap[y].length; x++) {
+                const tileCenter = { x: x * TILE_SIZE + TILE_SIZE / 2, y: y * TILE_SIZE + TILE_SIZE / 2 };
+                if (currentMap[y][x] === 0) { dots.push(new Dot(x, y)); }
+                else if (currentMap[y][x] === 2) { player = new Crow(tileCenter.x, tileCenter.y); }
+            }
+        }
+        if (level >= 10) { enemies.push(new Jelly(1 * TILE_SIZE + TILE_SIZE / 2, 1 * TILE_SIZE + TILE_SIZE / 2)); }
+    }
+
+    function gameLoop() {
+        if (!isPaused && !isGameOver) {
+            update();
+            draw();
+        }
+        gameLoopId = requestAnimationFrame(gameLoop);
+    }
+    
+    function update() {
+        if(player) player.update();
+        enemies.forEach(e => e.update());
+        checkCollisions();
+        checkWinCondition();
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawMap();
+        dots.forEach(d => d.draw());
+        enemies.forEach(e => e.draw());
+        if (player) player.draw();
+    }
+    
+    function drawMap() {
+        ctx.fillStyle = colors.wall || '#333';
+        for (let y = 0; y < currentMap.length; y++) {
+            for (let x = 0; x < currentMap[y].length; x++) {
+                if (currentMap[y][x] === 1) { ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE); }
+            }
+        }
+    }
+    
+    function checkCollisions() {
+        if(!player) return;
+        enemies.forEach(enemy => {
+            const dx = player.x - enemy.x;
+            const dy = player.y - enemy.y;
+            if (Math.sqrt(dx * dx + dy * dy) < player.radius + enemy.radius) { handlePlayerHit(); }
+        });
+    }
+    
+    function handlePlayerHit() {
+        lives--;
+        updateUI();
+        if (lives <= 0) {
+            isGameOver = true;
+            gameOverModal.style.display = 'flex';
+        } else {
+            for (let y = 0; y < currentMap.length; y++) {
+                for (let x = 0; x < currentMap[y].length; x++) {
+                    if (currentMap[y][x] === 2) {
+                        player.x = x * TILE_SIZE + TILE_SIZE / 2;
+                        player.y = y * TILE_SIZE + TILE_SIZE / 2;
+                        player.direction = {x:0, y:0};
+                        player.nextDirection = {x:0, y:0};
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    function checkWinCondition() {
+        if (dots.length === 0 && !isPaused) {
+            isPaused = true;
+            score++;
+            level++;
+            if (level === 2) showCat = true;
+            if (level === 3) showSeal = true;
+            updateUI();
+            setTimeout(() => { winModal.style.display = 'flex'; }, 500);
+        }
+    }
+    
+    function updateUI() {
+        scoreCountEl.textContent = score;
+        livesCountEl.textContent = lives;
+        levelDisplayEl.textContent = `關卡: ${level}`;
+        catHelper.style.display = showCat ? 'block' : 'none';
+        sealHelper.style.display = showSeal ? 'block' : 'none';
+    }
+
+    function togglePause() {
+        if (isGameOver) return;
+        isPaused = !isPaused;
+        pauseOverlay.style.display = isPaused ? 'flex' : 'none';
+        if (!isPaused) gameLoop();
+    }
+
+    function handleInput(direction) {
+        if (isPaused || isGameOver || !player) return;
+        if (player.direction.x === -direction.x && player.direction.y === -direction.y) {
+            player.direction = direction;
+            player.nextDirection = { x: 0, y: 0 };
+        } else {
+            player.nextDirection = direction;
+        }
+    }
+    
+    // 5. 事件監聽
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'F1') { e.preventDefault(); togglePause(); return; }
+        const keyMap = { ArrowUp: {x:0, y:-1}, w: {x:0, y:-1}, ArrowDown: {x:0, y:1}, s: {x:0, y:1}, ArrowLeft: {x:-1, y:0}, a: {x:-1, y:0}, ArrowRight: {x:1, y:0}, d: {x:1, y:0} };
+        if (keyMap[e.key]) handleInput(keyMap[e.key]);
+    });
+
+    ['up', 'down', 'left', 'right'].forEach(dir => {
+        const btn = document.getElementById(`btn-${dir}`);
+        const directions = { up: {x:0, y:-1}, down: {x:0, y:1}, left: {x:-1, y:0}, right: {x:1, y:0} };
+        btn.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(directions[dir]); });
+    });
+
+    document.getElementById('next-level-btn').addEventListener('click', () => {
+        winModal.style.display = 'none';
+        isPaused = false;
+        init(false);
+    });
+    
+    document.getElementById('restart-btn').addEventListener('click', () => {
+        gameOverModal.style.display = 'none';
+        init(true);
+    });
+
+    window.addEventListener('resize', () => init(false));
+
+    // 6. 背景動畫
+    function createFeather() {
+        const feather = document.createElement('div');
+        feather.className = 'feather';
+        feather.style.left = `${Math.random() * 100}vw`;
+        feather.style.animationDuration = `${Math.random() * 8 + 7}s`;
+        feather.style.animationDelay = `${Math.random() * 5}s`;
+        feather.style.transform = `scale(${Math.random() * 0.5 + 0.8})`;
+        document.getElementById('background-container').appendChild(feather);
+        setTimeout(() => feather.remove(), 15000);
+    }
+    setInterval(createFeather, 600);
+    
+    // 7. 首次啟動
+    init();
+    </script>
+</body>
+</html>
